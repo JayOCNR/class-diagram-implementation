@@ -93,13 +93,13 @@ public:
     }
 
     // Update stock of a product
-    void updateStock(const std::string& productID, int quantity)
+    void updateStock(const std::string &productID, int quantity)
     {
-        for (auto& product : productList)
+        for (auto &product : productList)
         {
             if (product.getProductID() == productID)
             {
-                product.updateStock(-quantity);
+                product.updateStock(quantity);
                 return;
             }
         }
@@ -122,7 +122,7 @@ public:
         allOrders.push_back(cartItems); // Add new order to the list
     }
 
-    void viewOrders() const
+    void viewOrders(ProductManager &productManager)
     {
         if (allOrders.empty())
         {
@@ -162,23 +162,74 @@ public:
                 std::cout << std::endl;
                 ++orderNumber;
             }
+
+            // Provide option to cancel an order
+            std::cout << "1 - Cancel an Order" << std::endl;
+            std::cout << "2 - Return to Menu" << std::endl;
+            int choice;
+            std::cin >> choice;
+
+            if (choice == 1)
+            {
+                int orderIndex;
+                std::cout << "Enter the order number to cancel: ";
+                std::cin >> orderIndex;
+                cancelOrder(orderIndex - 1, productManager); // Convert to 0-based index
+            }
         }
     }
-};
+    void cancelOrder(int orderIndex, ProductManager &productManager)
+    {
+        if (orderIndex < 0 || orderIndex >= allOrders.size())
+        {
+            std::cout << "Invalid order number." << std::endl;
+            return;
+        }
 
+        // Retrieve the order to cancel
+        const auto &orderToCancel = allOrders[orderIndex];
+
+        // Restore the stock of each product in the canceled order
+        for (const auto &item : orderToCancel)
+        {
+            productManager.updateStock(item.first.getProductID(), item.second); // Restore the stock
+        }
+
+        // Remove the canceled order from the list
+        allOrders.erase(allOrders.begin() + orderIndex);
+
+        std::cout << "Order " << (orderIndex + 1) << " has been canceled." << std::endl;
+    }
+};
+std::string toUpper(const std::string &str)
+{
+    std::string upperStr = str;
+    for (char &c : upperStr)
+    {
+        c = std::toupper(c);
+    }
+    return upperStr;
+}
 // ShoppingCart class
 class ShoppingCart
 {
 private:
     std::vector<std::pair<Product, int>> cart;
     double totalPrice;
-    ProductManager& productManager; // Reference to ProductManager
+    ProductManager &productManager;
 
 public:
-    ShoppingCart(ProductManager& pm) : totalPrice(0.0), productManager(pm) {}
+    ShoppingCart(ProductManager &pm) : totalPrice(0.0), productManager(pm) {}
 
     void addItem(const Product &product, int quantity = 1)
     {
+        // Check if the product has enough stock
+        if (product.getStock() < quantity)
+        {
+            std::cout << "Insufficient stock for product ID: " << product.getProductID() << std::endl;
+            return;
+        }
+
         bool productFound = false;
         for (auto &item : cart)
         {
@@ -189,17 +240,18 @@ public:
                 break;
             }
         }
+
         if (!productFound)
         {
             cart.push_back(std::make_pair(product, quantity));
         }
-        productManager.updateStock(product.getProductID(), quantity); // Update stock
+
+        productManager.updateStock(product.getProductID(), -quantity); // Update stock in ProductManager
         updateTotalPrice();
         std::cout << "Product added successfully!" << std::endl;
         system("pause");
         system("cls");
     }
-
     void removeItem(const std::string &productID, int quantity)
     {
         bool productFound = false;
@@ -212,14 +264,22 @@ public:
 
                 if (it->second <= 0)
                 {
+                    productManager.updateStock(productID, it->second); // Add back stock to ProductManager
                     cart.erase(it);
                     std::cout << "Product removed from cart." << std::endl;
+
+                    updateTotalPrice();
+                    return;
                 }
                 else
                 {
+                    // Update stock for the remaining quantity
+                    productManager.updateStock(productID, quantity);
                     std::cout << "Updated quantity for " << it->first.getName() << ": " << it->second << std::endl;
+
+                    updateTotalPrice();
+                    return;
                 }
-                break;
             }
         }
 
@@ -227,10 +287,8 @@ public:
         {
             std::cout << "Product ID not found in cart." << std::endl;
         }
-        updateTotalPrice();
     }
-
-    void viewCart(Order &order)
+    void checkoutCart(Order &order)
     {
         if (cart.empty())
         {
@@ -257,15 +315,38 @@ public:
             std::cout << "-----------------------------------------------------------" << std::endl;
             std::cout << "Total Amount: PHP " << std::fixed << std::setprecision(2) << totalPrice << std::endl;
             std::cout << "1 - Checkout" << std::endl;
-            std::cout << "2 - Return to Menu" << std::endl;
+            std::cout << "2 - Remove Item" << std::endl;
+            std::cout << "3 - Return to Menu" << std::endl;
+
             int choice;
             std::cin >> choice;
-            if (choice == 1)
+            switch (choice)
             {
+            case 1:
                 order.addOrder(cart);
                 cart.clear();
                 totalPrice = 0.0;
                 std::cout << "Order placed successfully!" << std::endl;
+                break;
+
+            case 2:
+            {
+                std::string productID;
+                int quantity;
+                std::cout << "Enter Product ID to remove: ";
+                std::cin >> productID;
+                productID = toUpper(productID);
+                std::cout << "Enter quantity to remove: ";
+                std::cin >> quantity;
+                removeItem(productID, quantity);
+            }
+            break;
+
+            case 3:
+                return; // Return to the menu
+            default:
+                std::cout << "Invalid choice. Please try again." << std::endl;
+                break;
             }
         }
         system("pause");
@@ -312,6 +393,7 @@ int main()
                 int quantity;
                 std::cout << "Enter Product ID to add to cart: ";
                 std::cin >> productID;
+                productID = toUpper(productID);
                 std::cout << "Enter quantity: ";
                 std::cin >> quantity;
 
@@ -333,10 +415,10 @@ int main()
             }
             break;
         case 2:
-            cart.viewCart(order);
+            cart.checkoutCart(order);
             break;
         case 3:
-            order.viewOrders();
+            order.viewOrders(productManager);
             break;
         case 4:
             std::cout << "Exiting program." << std::endl;
