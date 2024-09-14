@@ -172,9 +172,18 @@ public:
             if (choice == 1)
             {
                 int orderIndex;
+                std::cin.clear();
                 std::cout << "Enter the order number to cancel: ";
                 std::cin >> orderIndex;
                 cancelOrder(orderIndex - 1, productManager); // Convert to 0-based index
+                std::cin.ignore();
+            }
+            else
+            {
+                system("cls");
+                std::cin.clear();
+                std::cout << "Invalid choice number." << std::endl;
+                std::cin.ignore();
             }
         }
     }
@@ -182,7 +191,9 @@ public:
     {
         if (orderIndex < 0 || orderIndex >= allOrders.size())
         {
+            std::cin.clear();
             std::cout << "Invalid order number." << std::endl;
+            std::cin.ignore();
             return;
         }
 
@@ -345,7 +356,9 @@ public:
             case 3:
                 return; // Return to the menu
             default:
+                std::cin.clear();
                 std::cout << "Invalid choice. Please try again." << std::endl;
+                std::cin.ignore();
                 break;
             }
         }
@@ -425,7 +438,9 @@ int main()
             running = false;
             break;
         default:
+            std::cin.clear();
             std::cout << "Invalid choice. Please try again." << std::endl;
+            std::cin.ignore();
         }
     }
 
