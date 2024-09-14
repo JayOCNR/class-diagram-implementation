@@ -260,8 +260,7 @@ public:
         productManager.updateStock(product.getProductID(), -quantity); // Update stock in ProductManager
         updateTotalPrice();
         std::cout << "Product added successfully!" << std::endl;
-        system("pause");
-        system("cls");
+
     }
     void removeItem(const std::string &productID, int quantity)
     {
@@ -399,34 +398,45 @@ int main()
         switch (choice)
         {
         case 1:
-            system("cls");
-            productManager.displayProductList();
+    system("cls");
+    productManager.displayProductList();
+    {
+        std::string productID;
+        int quantity;
+        char choice;
+        do
+        {
+            std::cout << "Enter Product ID to add to cart: ";
+            std::cin >> productID;
+            productID = toUpper(productID);
+            std::cout << "Enter quantity: ";
+            std::cin >> quantity;
+
+            bool found = false;
+            for (const auto &product : productManager.getProductList())
             {
-                std::string productID;
-                int quantity;
-                std::cout << "Enter Product ID to add to cart: ";
-                std::cin >> productID;
-                productID = toUpper(productID);
-                std::cout << "Enter quantity: ";
-                std::cin >> quantity;
-
-                bool found = false;
-                for (const auto &product : productManager.getProductList())
+                if (product.getProductID() == productID)
                 {
-                    if (product.getProductID() == productID)
-                    {
-                        cart.addItem(product, quantity);
-                        found = true;
-                        break;
-                    }
-                }
-
-                if (!found)
-                {
-                    std::cout << "Product ID not found." << std::endl;
+                    cart.addItem(product, quantity);
+                    found = true;
+                    break;
                 }
             }
-            break;
+
+            if (!found)
+            {
+                std::cout << "Product ID not found." << std::endl;
+            }
+
+            std::cout << "Add another product? (y/n): ";
+            std::cin >> choice;
+            system("cls");
+            productManager.displayProductList();
+
+        } while (choice == 'y' || choice == 'Y');
+    }
+    break;
+
         case 2:
             cart.checkoutCart(order);
             break;
